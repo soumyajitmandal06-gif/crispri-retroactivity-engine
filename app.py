@@ -36,8 +36,8 @@ strategy = st.sidebar.radio(
 )
 
 st.sidebar.header("3. Execution")
-sim_mode = st.sidebar.radio("Simulation Mode", ["Single Cell Trajectory", "Monte Carlo Ensemble (50 cells)"])
-`   `
+sim_mode = st.siebar.radio("Simulation Mode", ["Single Cell Trajectory", "Monte Carlo Ensemble (50 cells)"])
+
 # 3. Execution Engine
 if st.sidebar.button("Run Simulation", type="primary"):
     # Initialize the core engine with the base parameters
