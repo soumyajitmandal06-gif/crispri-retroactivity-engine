@@ -3,10 +3,26 @@ import streamlit as st
 import matplotlib.pyplot as plt
 from crispri_engine import CRISPRiEngine
 
-# 1. UI Configuration
-st.set_page_config(page_title="CRISPRi Retroactivity Engine", layout="wide")
-st.title("In Silico CRISPRi Retroactivity Simulator")
-st.markdown("Test the robustness of a CRISPRi genetic circuit under metabolic stress, and apply thermodynamic affinity tuning to rescue the system.")
+# 1. UI Configuration & Specifications
+st.set_page_config(page_title="Advanced CRISPRi Retroactivity Engine", layout="wide")
+st.title("Advanced CRISPRi Retroactivity Engine")
+
+st.markdown("""
+**Engine Specifications:**
+* **Mathematical Framework:** 10-reaction Gillespie Stochastic Simulation Algorithm (SSA).
+* **Biological Scope:** Quantifies resource competition, kinetic rescue, and target flatlining under metabolic stress.
+* **Architecture:** Compares standard nucleases against orthogonal and AI-designed variants.
+---
+""")
+
+# 1.5 System Architecture (Sidebar)
+st.sidebar.header("0. System Architecture")
+cas_variant = st.sidebar.selectbox(
+    "Select Cas Enzyme Profile",
+    ("SpCas9 (Baseline)", "Nme1Cas9 (High-Affinity/AI-Designed)", "Miniature Cas12f")
+)
+plasmid_copy_number = st.sidebar.slider("Plasmid Copy Number", min_value=1, max_value=100, value=25)
+grna_deg_rate = st.sidebar.slider("gRNA Degradation Rate (1/s)", min_value=0.001, max_value=0.100, value=0.010, format="%.3f")
 
 # 2. User Input Panel (Sidebar)
 st.sidebar.header("1. Environmental Stress")
