@@ -56,21 +56,9 @@ if st.sidebar.button("Run Simulation", type="primary"):
         
     # Wire the new mathematical sliders directly into the engine
     sim.plasmid_copy_number = plasmid_copy_number
-    sim.grna_deg_rate = grna_deg_rate
-    
-    # Execute the Gillespie simulation
-    # [Keep your existing simulation execution and plotting code below this]
-if st.sidebar.button("Run Simulation", type="primary"):
-    # Initialize the core engine
-    sim = CRISPRiEngine(decoy_load=user_decoy_load, t_max=user_t_max)
-    
-    # Inject the user's chosen kinetic strategy into the engine
-    if strategy == "Wild-Type (Baseline Affinity)":
-        sim.k_on1 = 0.05
-        sim.k_off1 = 0.001
-    else:
-        sim.k_on1 = 0.5      # 10x stronger binding
-        sim.k_off1 = 0.0001  # 10x slower unbinding
+    sim.grna_deg_rate = grna_deg_rategit add app.py
+git commit -m "Removed duplicate button and obsolete strategy block"
+git push
     
     fig, ax = plt.subplots(figsize=(10, 6))
     
