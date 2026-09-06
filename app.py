@@ -37,8 +37,29 @@ strategy = st.sidebar.radio(
 
 st.sidebar.header("3. Execution")
 sim_mode = st.sidebar.radio("Simulation Mode", ["Single Cell Trajectory", "Monte Carlo Ensemble (50 cells)"])
-
+`   `
 # 3. Execution Engine
+if st.sidebar.button("Run Simulation", type="primary"):
+    # Initialize the core engine with the base parameters
+    sim = CRISPRiEngine(decoy_load=user_decoy_load, t_max=user_t_max)
+    
+    # Wire the Cas variant dropdown to the kinetic parameters
+    if cas_variant == "SpCas9 (Baseline)":
+        sim.k_on1 = 0.05
+        sim.k_off1 = 0.001
+    elif cas_variant == "Nme1Cas9 (High-Affinity/AI-Designed)":
+        sim.k_on1 = 0.5  # Faster binding
+        sim.k_off1 = 0.0001 # Slower unbinding
+    elif cas_variant == "Miniature Cas12f":
+        sim.k_on1 = 0.01 # Adjusted for miniature structure
+        sim.k_off1 = 0.005
+        
+    # Wire the new mathematical sliders directly into the engine
+    sim.plasmid_copy_number = plasmid_copy_number
+    sim.grna_deg_rate = grna_deg_rate
+    
+    # Execute the Gillespie simulation
+    # [Keep your existing simulation execution and plotting code below this]
 if st.sidebar.button("Run Simulation", type="primary"):
     # Initialize the core engine
     sim = CRISPRiEngine(decoy_load=user_decoy_load, t_max=user_t_max)
