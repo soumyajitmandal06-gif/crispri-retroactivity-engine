@@ -56,7 +56,7 @@ if st.sidebar.button("Run Simulation", type="primary"):
         
     # Wire the new mathematical sliders directly into the engine
     sim.plasmid_copy_number = plasmid_copy_number
-    sim.grna_deg_rate = grna_deg_rategit add app.py
+    sim.grna_deg_rate = grna_deg_rate
 git commit -m "Removed duplicate button and obsolete strategy block"
 git push
     
