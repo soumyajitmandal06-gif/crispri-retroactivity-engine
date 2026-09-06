@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 from crispri_engine import CRISPRiEngine
 
 # 1. UI Configuration & Specifications
-st.set_page_config(page_title="Advanced CRISPRi Retroactivity Engine", layout="wide")
-st.title("Advanced CRISPRi Retroactivity Engine")
+# 1. UI Configuration & Specifications
+st.set_page_config(page_title="RetroSim", layout="wide")
+st.title("RetroSim")
 
 st.markdown("""
 **Engine Specifications:**
