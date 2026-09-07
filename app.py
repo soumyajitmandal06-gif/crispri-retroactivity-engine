@@ -1,4 +1,4 @@
-
+import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 from crispri_engine import CRISPRiEngine
@@ -88,3 +88,34 @@ if st.sidebar.button("Run Simulation", type="primary"):
     
     # 4. Render Output
     st.pyplot(fig)
+   # --- Quantitative Metric Callouts ---
+    st.divider()
+    st.subheader("Simulation Metrics")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    final_target_level = sim.T1_points[-1] 
+    
+    with col1:
+        st.metric(label="Final Target Repression", value=f"{final_target_level:.1f} copies")
+    with col2:
+        st.metric(label="Metabolic Stress Load", value=f"{user_decoy_load} decoys")
+    with col3:
+        st.metric(label="Cas Variant Profile", value=cas_variant.split()[0])
+
+    # --- Data Export (.csv) ---
+    st.write("")
+    
+    df_results = pd.DataFrame({
+        "Time (s)": sim.time_points,
+        "Primary Target Count": sim.T1_points,
+        "Decoy Count": sim.T2_points
+    })
+    
+    st.download_button(
+        label="Download Trajectory Data (.csv)",
+        data=df_results.to_csv(index=False).encode('utf-8'),
+        file_name="retrosim_data.csv",
+        mime="text/csv",
+        type="primary"
+    )
