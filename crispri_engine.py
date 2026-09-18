@@ -7,11 +7,11 @@ class CRISPRiEngine:
         self.t_max = t_max
         
         # Kinetic Rates (The Rescued Open System)
-        self.k_form = 0.002
-        self.k_on1, self.k_off1 = 0.5, 0.0001   # Strong primary affinity
-        self.k_on2, self.k_off2 = 0.05, 0.001   # Weak decoy affinity
-        self.k_tx_dcas9, self.k_tx_sgrna = 0.5, 0.7
-        self.k_deg = 0.01
+        self.k_form = 0.01
+        self.k_on1, self.k_off1 = 0.05, 0.0001   # Stochastic k_on, SpCas9 baseline k_off
+        self.k_on2, self.k_off2 = 0.005, 0.001   # Weak decoy affinity
+        self.k_tx_dcas9, self.k_tx_sgrna = 0.05, 0.1 
+        self.k_deg = 0.000385                    # 30-minute cell doubling time
         
         # Target constraints
         self.T1_init = 2
@@ -31,29 +31,45 @@ class CRISPRiEngine:
         self.T2_points = [self.R2]
         self.C_points = [self.C]
 
-    def run(self):
-        """Executes the 10-reaction stochastic Gillespie matrix."""
+    def run(self, shock_time=None, decoy_spike=0):
+        shock_applied = False
+        
         while self.t < self.t_max:
-            # Propensity Calculations
-            props = np.array([
-                self.k_form * self.dcas9 * self.sgrna,  # 0: Form complex
-                self.k_on1 * self.C * self.T1,          # 1: Bind T1
-                self.k_off1 * self.R1,                  # 2: Unbind T1
-                self.k_on2 * self.C * self.T2,          # 3: Bind T2
-                self.k_off2 * self.R2,                  # 4: Unbind T2
-                self.k_tx_dcas9,                        # 5: Produce dCas9
-                self.k_tx_sgrna,                        # 6: Produce sgRNA
-                self.k_deg * self.dcas9,                # 7: Degrade dCas9
-                self.k_deg * self.sgrna,                # 8: Degrade sgRNA
-                self.k_deg * self.C                     # 9: Degrade Complex
-            ])
+            # Inject the metabolic stress if the timer hits the threshold
+            if shock_time is not None and self.t >= shock_time and not shock_applied:
+                self.T2 += decoy_spike
+                shock_applied = True
+                
+            # OUTSIDE THE IF STATEMENT: Pure Python scalar propensities
+            a0_prop = self.k_form * self.dcas9 * self.sgrna
+            a1_prop = self.k_on1 * self.C * self.T1
+            a2_prop = self.k_off1 * self.R1
+            a3_prop = self.k_on2 * self.C * self.T2
+            a4_prop = self.k_off2 * self.R2
+            a5_prop = self.k_tx_dcas9
+            a6_prop = self.k_tx_sgrna
+            a7_prop = self.k_deg * self.dcas9
+            a8_prop = self.k_deg * self.sgrna
+            a9_prop = self.k_deg * self.C
             
-            a_0 = np.sum(props)
-            if a_0 <= 0: break
+            props = (a0_prop, a1_prop, a2_prop, a3_prop, a4_prop, a5_prop, a6_prop, a7_prop, a8_prop, a9_prop)
+            a_sum = sum(props)
             
+            if a_sum <= 0: break
+            
+            # Time step calculation
             r1, r2 = np.random.random(2)
-            self.t += -np.log(r1) / a_0
-            reaction_index = np.searchsorted(np.cumsum(props / a_0), r2)
+            self.t += -np.log(r1) / a_sum
+            
+            # Fast pure Python selection to avoid np.cumsum overhead
+            target = r2 * a_sum
+            current = 0.0
+            reaction_index = 0
+            for i, p in enumerate(props):
+                current += p
+                if current > target:
+                    reaction_index = i
+                    break
             
             # Execute Winning Reaction
             if reaction_index == 0: self.dcas9 -= 1; self.sgrna -= 1; self.C += 1
@@ -71,12 +87,10 @@ class CRISPRiEngine:
             self.T1_points.append(self.R1)
             self.T2_points.append(self.R2)
             self.C_points.append(self.C)
-
-# --- USER INTERACTION BLOCK ---
-# --- USER INTERACTION BLOCK ---
+  # --- USER INTERACTION BLOCK ---
 if __name__ == "__main__":
     # Initialize the engine
-    sim = CRISPRiEngine(decoy_load=25, t_max=400)
+    sim = CRISPRIEngine()
     
     num_cells = 50
     plt.figure(figsize=(9, 5.5))
@@ -86,21 +100,13 @@ if __name__ == "__main__":
     # Run 50 independent stochastic simulations (The Monte Carlo Ensemble)
     for i in range(num_cells):
         sim.reset_system()
-        sim.run()
+        sim.run(shock_time=200, decoy_spike=50) # Tests the new dynamic shock logic
         
-        # Plot each cell's trajectory with low opacity to build the noise cloud
-        if i == 0:
-            # Add labels only for the first loop so the legend stays clean
-            plt.step(sim.time_points, sim.T1_points, where='post', color='#00ff00', alpha=0.15, label='Primary Target (Rescued)')
-            plt.step(sim.time_points, sim.T2_points, where='post', color='#ff0000', alpha=0.15, label='Decoy Load (25 Copies)')
-        else:
-            plt.step(sim.time_points, sim.T1_points, where='post', color='#00ff00', alpha=0.15)
-            plt.step(sim.time_points, sim.T2_points, where='post', color='#ff0000', alpha=0.15)
-
-    plt.xlabel('Time (seconds)')
-    plt.ylabel('Discrete Molecular Counts')
-    plt.title(f'Monte Carlo Stochastic Ensemble ({num_cells} Simulated E. coli Cells)')
-    plt.legend()
+    # Plot each cell's trajectory with low opacity to build the noise cloud
+    # (Ensure your plotting lines match your local graphing variables)
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Discrete Molecular Counts")
+    plt.title("CRISPRi Circuit Dynamics: Dynamic Perturbation Test")
     plt.grid(True, alpha=0.3)
     plt.show()
-    print("Ensemble complete.")
+    

@@ -28,14 +28,17 @@ grna_deg_rate = st.sidebar.slider("gRNA Degradation Rate (1/s)", min_value=0.001
 # 2. User Input Panel (Sidebar)
 st.sidebar.header("1. Environmental Stress")
 user_decoy_load = st.sidebar.slider("Decoy Target Load (Copies)", min_value=0, max_value=100, value=25)
-user_t_max = st.sidebar.number_input("Simulation Time (seconds)", min_value=100, max_value=2000, value=400, step=100)
+user_t_max = st.sidebar.number_input("Simulation Time (seconds)", min_value=600, max_value=7200, value=3600, step=600)
 
 st.sidebar.header("2. Engineering Strategy")
 strategy = st.sidebar.radio(
     "Circuit Kinetics", 
     ["Wild-Type (Baseline Affinity)", "Kinetic Rescue (10x Affinity)"]
 )
-
+st.sidebar.markdown("---")
+st.sidebar.header("2.5 Dynamic Perturbation")
+shock_time = st.sidebar.slider("Time to Inject Shock (s)", 0, int(user_t_max), int(user_t_max/2))
+decoy_spike = st.sidebar.slider("Decoy Target Spike (Copies)", 0, 100, 50)
 st.sidebar.header("3. Execution")
 sim_mode = st.sidebar.radio("Simulation Mode", ["Single Cell Trajectory", "Monte Carlo Ensemble (50 cells)"])
 
@@ -47,12 +50,12 @@ if st.sidebar.button("Run Simulation", type="primary"):
     # Wire the Cas variant dropdown to the kinetic parameters
     if cas_variant == "SpCas9 (Baseline)":
         sim.k_on1 = 0.05
-        sim.k_off1 = 0.001
+        sim.k_off1 = 0.0001      # Matches the methodology PDF
     elif cas_variant == "Nme1Cas9 (High-Affinity/AI-Designed)":
-        sim.k_on1 = 0.5  # Faster binding
-        sim.k_off1 = 0.0001 # Slower unbinding
+        sim.k_on1 = 0.1          
+        sim.k_off1 = 0.00001     # Pushed below k_deg boundary
     elif cas_variant == "Miniature Cas12f":
-        sim.k_on1 = 0.01 # Adjusted for miniature structure
+        sim.k_on1 = 0.01 
         sim.k_off1 = 0.005
         
     # Wire the new mathematical sliders directly into the engine
@@ -62,15 +65,15 @@ if st.sidebar.button("Run Simulation", type="primary"):
     
     if sim_mode == "Single Cell Trajectory":
         with st.spinner("Calculating stochastic matrix..."):
-            sim.run()
-            ax.step(sim.time_points, sim.T1_points, where='post', color='#00ff00', linewidth=2.5, label='Primary Target')
-            ax.step(sim.time_points, sim.T2_points, where='post', color='#ff0000', linewidth=2, label=f'Decoy Load ({user_decoy_load})')
+                    sim.run(shock_time=shock_time, decoy_spike=decoy_spike)
+                    ax.step(sim.time_points, sim.T1_points, where='post', color='#00ff00', linewidth=2.5, label='Primary Target')
+                    ax.step(sim.time_points, sim.T2_points, where='post', color='#ff0000', linewidth=2, label=f'Decoy Load ({user_decoy_load})')
     
     elif sim_mode == "Monte Carlo Ensemble (50 cells)":
         with st.spinner(f"Executing 50-cell Monte Carlo ensemble under {strategy}..."):
             for i in range(50):
                 sim.reset_system()
-                sim.run()
+                sim.run(shock_time=shock_time, decoy_spike=decoy_spike)
                 if i == 0:
                     ax.step(sim.time_points, sim.T1_points, where='post', color='#00ff00', alpha=0.15, label='Primary Target')
                     ax.step(sim.time_points, sim.T2_points, where='post', color='#ff0000', alpha=0.15, label=f'Decoy Load ({user_decoy_load})')
