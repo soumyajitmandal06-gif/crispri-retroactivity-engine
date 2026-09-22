@@ -4,14 +4,13 @@ import matplotlib.pyplot as plt
 from crispri_engine import CRISPRiEngine
 
 # 1. UI Configuration & Specifications
-# 1. UI Configuration & Specifications
 st.set_page_config(page_title="RetroSim", layout="wide")
 st.title("RetroSim")
 
 st.markdown("""
 **Engine Specifications:**
 * **Mathematical Framework:** 10-reaction Gillespie Stochastic Simulation Algorithm (SSA).
-* **Biological Scope:** Quantifies resource competition, kinetic rescue, and target flatlining under metabolic stress.
+* **Biological Scope:** Quantifies resource competition, kinetic rescue, and target flatlining under **competitive retroactivity (sequestration)**.
 * **Architecture:** Compares standard nucleases against orthogonal and AI-designed variants.
 ---
 """)
@@ -26,7 +25,7 @@ plasmid_copy_number = st.sidebar.slider("Plasmid Copy Number", min_value=1, max_
 grna_deg_rate = st.sidebar.slider("gRNA Degradation Rate (1/s)", min_value=0.001, max_value=0.100, value=0.010, format="%.3f")
 
 # 2. User Input Panel (Sidebar)
-st.sidebar.header("1. Environmental Stress")
+st.sidebar.header("1. Sequestration Load")
 user_decoy_load = st.sidebar.slider("Decoy Target Load (Copies)", min_value=0, max_value=100, value=25)
 user_t_max = st.sidebar.number_input("Simulation Time (seconds)", min_value=600, max_value=7200, value=3600, step=600)
 
@@ -58,16 +57,20 @@ if st.sidebar.button("Run Simulation", type="primary"):
         sim.k_on1 = 0.01 
         sim.k_off1 = 0.005
         
-    # Wire the new mathematical sliders directly into the engine
+    # Wire the UI sliders directly into the engine
     sim.plasmid_copy_number = plasmid_copy_number
     sim.grna_deg_rate = grna_deg_rate
+    
+    # CRITICAL: Force a reset so the engine absorbs the new UI values before running
+    sim.reset_system()
+    
     fig, ax = plt.subplots(figsize=(10, 6))
     
     if sim_mode == "Single Cell Trajectory":
         with st.spinner("Calculating stochastic matrix..."):
-                    sim.run(shock_time=shock_time, decoy_spike=decoy_spike)
-                    ax.step(sim.time_points, sim.T1_points, where='post', color='#00ff00', linewidth=2.5, label='Primary Target')
-                    ax.step(sim.time_points, sim.T2_points, where='post', color='#ff0000', linewidth=2, label=f'Decoy Load ({user_decoy_load})')
+            sim.run(shock_time=shock_time, decoy_spike=decoy_spike)
+            ax.step(sim.time_points, sim.T1_points, where='post', color='#00ff00', linewidth=2.5, label='Primary Target')
+            ax.step(sim.time_points, sim.T2_points, where='post', color='#ff0000', linewidth=2, label=f'Decoy Load ({user_decoy_load})')
     
     elif sim_mode == "Monte Carlo Ensemble (50 cells)":
         with st.spinner(f"Executing 50-cell Monte Carlo ensemble under {strategy}..."):
@@ -87,11 +90,12 @@ if st.sidebar.button("Run Simulation", type="primary"):
     ax.set_title(f"CRISPRi Circuit Dynamics: {strategy}")
     ax.legend(loc="upper left")
     ax.grid(True, alpha=0.3)
-    ax.set_ylim(-1, max(user_decoy_load + 5, 10))
+    ax.set_ylim(-1, max(user_decoy_load + decoy_spike + 5, 10))
     
     # 4. Render Output
     st.pyplot(fig)
-   # --- Quantitative Metric Callouts ---
+    
+    # --- Quantitative Metric Callouts ---
     st.divider()
     st.subheader("Simulation Metrics")
     
@@ -102,7 +106,7 @@ if st.sidebar.button("Run Simulation", type="primary"):
     with col1:
         st.metric(label="Final Target Repression", value=f"{final_target_level:.1f} copies")
     with col2:
-        st.metric(label="Metabolic Stress Load", value=f"{user_decoy_load} decoys")
+        st.metric(label="Sequestration Load", value=f"{user_decoy_load} decoys")
     with col3:
         st.metric(label="Cas Variant Profile", value=cas_variant.split()[0])
 
